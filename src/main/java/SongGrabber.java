@@ -50,12 +50,12 @@ public class SongGrabber extends Application
 	{
 		pauseBtn.setOnAction(event -> 
 		{
-			spotify.pauseUserPlayback();
+			spotify.pausePlayback();
 		});
 		
 		startBtn.setOnAction(event -> 
 		{
-			spotify.resumeUserPlayback();
+			spotify.resumePlayback();
 		});
 		
 	}
