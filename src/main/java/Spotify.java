@@ -32,7 +32,6 @@ import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackReq
 public class Spotify
 {
 	static final String clientId = "f59708637b0f46958f3a5ad18f926a46";
-	static final String clientSecret = "cbfe0157f7374d4aa11d2e66176bba4a";
 	static final URI redirectURI = SpotifyHttpManager.makeUri("http://localhost:8080/callback/");
 	static String code = "";
 	static final String codeVerifier = generateVerifier();
@@ -55,6 +54,7 @@ public class Spotify
 	private static StartResumeUsersPlaybackRequest resumePlaybackRequest;
 	private static PauseUsersPlaybackRequest pauseUsersPlaybackRequest;
 	
+	// Start building requests
 	private static void instantiateRequests()
 	{
 		resumePlaybackRequest = spotifyApi.startResumeUsersPlayback().build();
@@ -181,7 +181,7 @@ public class Spotify
 		}
 	}
 	
-	
+	// For PCKE authentication
 	private static String generateVerifier()
 	{
 		System.out.println("Generating Verifier");
@@ -198,6 +198,7 @@ public class Spotify
 		
 	}
 	
+	// For PCKE authentication
 	private static String generateChallenge(String verifier)
 	{
 		System.out.println("Generating Challenge");
