@@ -12,6 +12,7 @@ public class SongGrabber extends Application
 	Spotify spotify = new Spotify();
 	Button pauseBtn = new Button("Pause");
 	Button startBtn = new Button("Start");
+	Button getDevicesBtn = new Button("Devices");
 	
 	public static void main(String[] args)
 	{
@@ -38,9 +39,10 @@ public class SongGrabber extends Application
 			spotify.resumeUserPlayback();
 		});
 		
+		
 		pane.add(startBtn, 0, 0);
 		pane.add(pauseBtn, 1, 0);
-		
+		pane.add(getDevicesBtn, 2, 0);
 		
 		Scene scene = new Scene(pane, 500, 500);
 
