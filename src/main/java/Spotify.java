@@ -2,11 +2,16 @@ import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
+import se.michaelthelin.spotify.model_objects.specification.Artist;
+import se.michaelthelin.spotify.model_objects.specification.Paging;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.pkce.AuthorizationCodePKCERefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.pkce.AuthorizationCodePKCERequest;
 import se.michaelthelin.spotify.requests.data.player.PauseUsersPlaybackRequest;
 import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackRequest;
+import se.michaelthelin.spotify.requests.data.playlists.GetListOfCurrentUsersPlaylistsRequest;
+import se.michaelthelin.spotify.requests.data.search.simplified.SearchArtistsRequest;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -42,6 +47,8 @@ public class Spotify
 	
 	private static PauseUsersPlaybackRequest pauseRequest;
 	private static StartResumeUsersPlaybackRequest resumeRequest;
+	private static SearchArtistsRequest searchRequest;
+	private static GetListOfCurrentUsersPlaylistsRequest playlistRequest;
 	
 	public static void pausePlayback()
 	{
@@ -65,6 +72,36 @@ public class Spotify
 		{
 			System.out.println("Resume/Start Error: " + e.getMessage());
 		}
+	}
+	
+	public static Artist[] searchArtists(String query)
+	{
+		searchRequest = api.searchArtists(query).build();
+		
+		try
+		{
+			Paging<Artist> artists = searchRequest.execute();
+			return artists.getItems();
+			
+		} catch (IOException | ParseException | SpotifyWebApiException e)
+		{
+			System.out.println("Search Error: " + e.getMessage());
+		}
+		// For compiler
+		return null;
+	}
+	
+	public static PlaylistSimplified[] getUserPlaylists()
+	{
+		try
+		{
+			Paging<PlaylistSimplified> playlists = playlistRequest.execute();
+			return playlists.getItems();
+		} catch (ParseException | SpotifyWebApiException | IOException e)
+		{
+			System.out.println("Playlist Error: " + e.getMessage());
+		}
+		return null;
 	}
 	
 	public Spotify()
@@ -152,6 +189,7 @@ public class Spotify
 	{
 		pauseRequest = api.pauseUsersPlayback().build();
 		resumeRequest = api.startResumeUsersPlayback().build();
+		playlistRequest = api.getListOfCurrentUsersPlaylists().build();
 	}
 	
 	private static void authWorkflow()

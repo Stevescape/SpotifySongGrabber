@@ -1,10 +1,21 @@
 import java.util.Scanner;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
+import se.michaelthelin.spotify.model_objects.specification.Artist;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 
 
 public class SongGrabber extends Application
@@ -14,7 +25,14 @@ public class SongGrabber extends Application
 	// GUI
 	Button pauseBtn = new Button("Pause");
 	Button startBtn = new Button("Start");
-	GridPane pane;
+	Button searchBtn = new Button("Grab Songs");
+	
+	TextField searchField = new TextField("");
+	
+	ListView<Artist> foundArtists = new ListView<Artist>();
+	ListView<PlaylistSimplified> userPlaylists = new ListView<PlaylistSimplified>();
+	
+	BorderPane pane;
 	
 	public static void main(String[] args)
 	{
@@ -41,23 +59,122 @@ public class SongGrabber extends Application
 	
 	private void buildGui()
 	{
-		pane = new GridPane();
-		pane.add(startBtn, 0, 0);
-		pane.add(pauseBtn, 1, 0);
+		pane = new BorderPane();
+		
+		BorderPane buttonPane = new BorderPane();
+		HBox buttons = new HBox();
+		buttons.setSpacing(150);
+		buttons.getChildren().addAll(pauseBtn, startBtn, searchBtn);
+		
+		buttonPane.setCenter(buttons);
+		
+		GridPane topBar = new GridPane();
+		Label searchLbl = new Label("Search for Artist");
+		
+		topBar.add(searchLbl, 0, 0);
+		topBar.add(searchField, 0, 1);
+		
+		GridPane viewPane = new GridPane();
+		viewPane.add(foundArtists, 0, 0);
+		viewPane.add(userPlaylists, 1, 0);	
+		
+		buildPlaylistView();
+		
+		pane.setTop(topBar);
+		pane.setCenter(viewPane);
+		pane.setBottom(buttonPane);
 	}
 	
 	private void registerHandlers()
 	{
 		pauseBtn.setOnAction(event -> 
 		{
-			spotify.pausePlayback();
+			Spotify.pausePlayback();
 		});
 		
 		startBtn.setOnAction(event -> 
 		{
-			spotify.resumePlayback();
+			Spotify.resumePlayback();
+		});
+		
+		searchField.setOnAction(event -> 
+		{
+			Artist[] allArtists = Spotify.searchArtists(searchField.getText());
+			
+			ObservableList<Artist> artistList = FXCollections.observableArrayList(allArtists);
+			foundArtists.setItems(artistList);
+			setArtistCellFactory();
+			
 		});
 		
 	}
+	
+	private void buildPlaylistView()
+	{
+		PlaylistSimplified[] playlists = Spotify.getUserPlaylists();
+		PlaylistSimplified playlist = playlists[0];
+		playlist.getName();
+		ObservableList<PlaylistSimplified> playlistArr = FXCollections.observableArrayList(playlists);
+		userPlaylists.setItems(playlistArr);
+		setPlaylistCellFactory();
+	}
+	
+	private void setArtistCellFactory()
+	{
+		foundArtists.setCellFactory(new Callback<ListView<Artist>, ListCell<Artist>>() 
+				{
 
+					@Override
+					public ListCell<Artist> call(ListView<Artist> param)
+					{
+						ListCell<Artist> cell = new ListCell<Artist>() 
+								{
+									@Override
+									protected void updateItem(Artist artist, boolean empty)
+									{
+										super.updateItem(artist, empty);
+										if (artist != null)
+										{
+											setText(artist.getName());
+										} else
+										{
+											setText("");
+										}
+									}
+								};
+						return cell;
+					}
+			
+				});
+	}
+	
+	private void setPlaylistCellFactory()
+	{
+		userPlaylists.setCellFactory(new Callback<ListView<PlaylistSimplified>, ListCell<PlaylistSimplified>>() 
+				{
+
+					@Override
+					public ListCell<PlaylistSimplified> call(ListView<PlaylistSimplified> param)
+					{
+						ListCell<PlaylistSimplified> cell = new ListCell<PlaylistSimplified>() 
+								{
+									@Override
+									protected void updateItem(PlaylistSimplified playlist, boolean empty)
+									{
+										super.updateItem(playlist, empty);
+										if (playlist != null)
+										{
+											setText(playlist.getName());
+										} else
+										{
+											setText("");
+										}
+									}
+								};
+						return cell;
+					}
+			
+				});
+	}
+	
 }
