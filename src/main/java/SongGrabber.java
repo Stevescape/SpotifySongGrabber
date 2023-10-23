@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.Scanner;
 
 import javafx.application.Application;
@@ -9,6 +10,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -25,7 +28,7 @@ public class SongGrabber extends Application
 	// GUI
 	Button pauseBtn = new Button("Pause");
 	Button startBtn = new Button("Start");
-	Button searchBtn = new Button("Grab Songs");
+	Button grabBtn = new Button("Grab Songs");
 	
 	TextField searchField = new TextField("");
 	
@@ -33,6 +36,7 @@ public class SongGrabber extends Application
 	ListView<PlaylistSimplified> userPlaylists = new ListView<PlaylistSimplified>();
 	
 	BorderPane pane;
+	HashMap<Artist, ImageView> images = new HashMap<>();
 	
 	public static void main(String[] args)
 	{
@@ -64,7 +68,7 @@ public class SongGrabber extends Application
 		BorderPane buttonPane = new BorderPane();
 		HBox buttons = new HBox();
 		buttons.setSpacing(150);
-		buttons.getChildren().addAll(pauseBtn, startBtn, searchBtn);
+		buttons.getChildren().addAll(pauseBtn, startBtn, grabBtn);
 		
 		buttonPane.setCenter(buttons);
 		
@@ -97,6 +101,11 @@ public class SongGrabber extends Application
 			Spotify.resumePlayback();
 		});
 		
+		grabBtn.setOnAction(event ->
+		{
+			parseArtistSongs();
+		});
+		
 		searchField.setOnAction(event -> 
 		{
 			Artist[] allArtists = Spotify.searchArtists(searchField.getText());
@@ -119,6 +128,12 @@ public class SongGrabber extends Application
 		setPlaylistCellFactory();
 	}
 	
+	private void parseArtistSongs()
+	{
+		PlaylistSimplified playlistDst = userPlaylists.getSelectionModel().getSelectedItem();
+		Artist artist = foundArtists.getSelectionModel().getSelectedItem();
+	}
+	
 	private void setArtistCellFactory()
 	{
 		foundArtists.setCellFactory(new Callback<ListView<Artist>, ListCell<Artist>>() 
@@ -135,6 +150,21 @@ public class SongGrabber extends Application
 										super.updateItem(artist, empty);
 										if (artist != null)
 										{
+											ImageView imageView = null;
+											// Save each image to hashmap so we don't have to reload each time
+											if (!images.containsKey(artist) && artist.getImages().length != 0)
+											{
+												String path = artist.getImages()[0].getUrl();
+												Image image = new Image(path, 50, 50, false, true);
+												imageView = new ImageView(image);
+												
+												images.put(artist, imageView);
+											} else
+											{
+												imageView = images.get(artist);
+											}
+											
+											setGraphic(imageView);
 											setText(artist.getName());
 										} else
 										{

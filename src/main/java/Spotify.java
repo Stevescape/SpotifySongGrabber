@@ -76,7 +76,7 @@ public class Spotify
 	
 	public static Artist[] searchArtists(String query)
 	{
-		searchRequest = api.searchArtists(query).build();
+		searchRequest = api.searchArtists(query).limit(10).build();
 		
 		try
 		{
