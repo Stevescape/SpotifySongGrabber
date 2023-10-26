@@ -13,19 +13,23 @@ import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.Paging;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.Track;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
+import se.michaelthelin.spotify.model_objects.specification.User;
 import se.michaelthelin.spotify.requests.data.albums.GetAlbumsTracksRequest;
 import se.michaelthelin.spotify.requests.data.artists.GetArtistsAlbumsRequest;
 import se.michaelthelin.spotify.requests.data.player.PauseUsersPlaybackRequest;
 import se.michaelthelin.spotify.requests.data.player.StartResumeUsersPlaybackRequest;
 import se.michaelthelin.spotify.requests.data.playlists.AddItemsToPlaylistRequest;
+import se.michaelthelin.spotify.requests.data.playlists.CreatePlaylistRequest;
 import se.michaelthelin.spotify.requests.data.playlists.GetListOfCurrentUsersPlaylistsRequest;
 import se.michaelthelin.spotify.requests.data.playlists.GetPlaylistsItemsRequest;
 import se.michaelthelin.spotify.requests.data.search.simplified.SearchArtistsRequest;
 import se.michaelthelin.spotify.requests.data.tracks.GetSeveralTracksRequest;
+import se.michaelthelin.spotify.requests.data.users_profile.GetCurrentUsersProfileRequest;
 
 public class Requests
 {
@@ -38,6 +42,8 @@ public class Requests
 	private static GetPlaylistsItemsRequest getPlaylistItemsRequest;
 	private static AddItemsToPlaylistRequest addToPlaylistRequest;
 	private static GetSeveralTracksRequest getSeveralTracksRequest;
+	private static CreatePlaylistRequest createPlaylistRequest;
+	private static GetCurrentUsersProfileRequest getUserRequest;
 	
 	private static SpotifyApi api;
 	
@@ -131,12 +137,23 @@ public class Requests
 	
 	public static PlaylistTrack[] getPlaylistItems(PlaylistSimplified playlist)
 	{
-		
-		getPlaylistItemsRequest = api.getPlaylistsItems(playlist.getId()).build();
-		
+		int length = playlist.getTracks().getTotal();
+		int cur = 0;
+			
+		PlaylistTrack[] allTracks = new PlaylistTrack[length];
 		try
 		{
-			return getPlaylistItemsRequest.execute().getItems();
+			while (cur < length)
+			{
+				getPlaylistItemsRequest = api.getPlaylistsItems(playlist.getId()).offset(cur).build();
+				PlaylistTrack[] curTracks = getPlaylistItemsRequest.execute().getItems();
+				for (int i = 0; i < curTracks.length; i++)
+				{
+					allTracks[cur+i] = curTracks[i];
+				}
+				cur += 100;
+			}
+			return allTracks;
 		} catch (ParseException | SpotifyWebApiException | IOException e)
 		{
 			System.out.println("Track Get Error: " + e.getMessage());
@@ -145,6 +162,20 @@ public class Requests
 	}
 	
 	public static void addToPlaylist(PlaylistSimplified playlist, String[] songs)
+	{
+		addToPlaylistRequest = api.addItemsToPlaylist(playlist.getId(), songs).build();
+		
+		try
+		{
+			addToPlaylistRequest.execute();
+		} catch (ParseException | SpotifyWebApiException | IOException e)
+		{
+			System.out.println("Playlist Adding Error: " + e.getMessage());
+		}
+		
+	}
+	
+	public static void addToPlaylist(Playlist playlist, String[] songs)
 	{
 		addToPlaylistRequest = api.addItemsToPlaylist(playlist.getId(), songs).build();
 		
@@ -169,7 +200,8 @@ public class Requests
 			
 			for (Track curTrack : tracks)
 			{
-				tracksArr.add(curTrack);
+				if (curTrack != null)
+					tracksArr.add(curTrack);
 			}
 			
 			return tracksArr;
@@ -181,10 +213,38 @@ public class Requests
 		return null;
 	}
 	
+	public static Playlist createPlaylist(String userId, String name)
+	{
+		createPlaylistRequest = api.createPlaylist(userId, name).build();
+		try 
+		{
+			return createPlaylistRequest.execute();
+		} catch (ParseException | SpotifyWebApiException | IOException e)
+		{
+			System.out.println("Creating Playlist Error: " + e.getMessage());
+		}
+		
+		return null;
+	}
+	
+	public static User getCurrentUser()
+	{
+		try 
+		{
+			return getUserRequest.execute();
+		} catch (ParseException | SpotifyWebApiException | IOException e)
+		{
+			System.out.println("Getting User Error: " + e.getMessage());
+		}
+		
+		return null;
+	}
+	
 	private static void initializeRequests()
 	{
 		pauseRequest = api.pauseUsersPlayback().build();
 		resumeRequest = api.startResumeUsersPlayback().build();
 		playlistRequest = api.getListOfCurrentUsersPlaylists().build();
+		getUserRequest = api.getCurrentUsersProfile().build();
 	}
 }

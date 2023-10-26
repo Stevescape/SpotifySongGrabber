@@ -32,6 +32,7 @@ import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
+import se.michaelthelin.spotify.model_objects.specification.User;
 
 
 public class SongGrabber extends Application
@@ -191,7 +192,8 @@ public class SongGrabber extends Application
 				makeSelection.show();
 			} else 
 			{
-				Shuffle.shufflePlaylist(playlistDst);
+				User currentUser = Requests.getCurrentUser();
+				Shuffle.shufflePlaylist(playlistDst, currentUser.getId());
 				finishedProcess.show();
 			}
 		});

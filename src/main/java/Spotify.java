@@ -79,6 +79,7 @@ public class Spotify
 						+ "user-modify-playback-state,"
 						+ "user-library-modify,"
 						+ "playlist-modify-private,"
+						+ "playlist-modify-public,"
 						+ "playlist-read-collaborative")
 				.show_dialog(false)
 				.build();
