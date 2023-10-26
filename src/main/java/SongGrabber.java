@@ -1,10 +1,19 @@
+/**
+ * GUI for spotify song grabber
+ * 
+ * @author Steven Truong
+ */
+
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Scanner;
+import java.util.HashSet;
 
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -17,8 +26,12 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import se.michaelthelin.spotify.model_objects.IPlaylistItem;
+import se.michaelthelin.spotify.model_objects.specification.AlbumSimplified;
 import se.michaelthelin.spotify.model_objects.specification.Artist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistSimplified;
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
+import se.michaelthelin.spotify.model_objects.specification.TrackSimplified;
 
 
 public class SongGrabber extends Application
@@ -29,11 +42,16 @@ public class SongGrabber extends Application
 	Button pauseBtn = new Button("Pause");
 	Button startBtn = new Button("Start");
 	Button grabBtn = new Button("Grab Songs");
+	Button addBackBtn = new Button("Add Song");
+	Button shuffleBtn = new Button("Shuffle Playlist");
 	
 	TextField searchField = new TextField("");
 	
-	ListView<Artist> foundArtists = new ListView<Artist>();
-	ListView<PlaylistSimplified> userPlaylists = new ListView<PlaylistSimplified>();
+	ListView<Artist> foundArtists = new ListView<>();
+	ListView<PlaylistSimplified> userPlaylists = new ListView<>();
+	ListView<TrackSimplified> songsNotAdded = new ListView<>();
+	
+	Alert finishedProcess = new Alert(AlertType.INFORMATION);
 	
 	BorderPane pane;
 	HashMap<Artist, ImageView> images = new HashMap<>();
@@ -51,10 +69,7 @@ public class SongGrabber extends Application
 		buildGui();
 		registerHandlers();
 		
-		
-		
-		
-		Scene scene = new Scene(pane, 500, 500);
+		Scene scene = new Scene(pane, 750, 500);
 
 		stage.setScene(scene);
 		stage.show();
@@ -65,10 +80,12 @@ public class SongGrabber extends Application
 	{
 		pane = new BorderPane();
 		
+		finishedProcess.setHeaderText("Finished Process");
+		
 		BorderPane buttonPane = new BorderPane();
 		HBox buttons = new HBox();
-		buttons.setSpacing(150);
-		buttons.getChildren().addAll(pauseBtn, startBtn, grabBtn);
+		buttons.setSpacing(100);
+		buttons.getChildren().addAll(pauseBtn, startBtn, grabBtn, addBackBtn, shuffleBtn);
 		
 		buttonPane.setCenter(buttons);
 		
@@ -78,9 +95,12 @@ public class SongGrabber extends Application
 		topBar.add(searchLbl, 0, 0);
 		topBar.add(searchField, 0, 1);
 		
+		
+		
 		GridPane viewPane = new GridPane();
 		viewPane.add(foundArtists, 0, 0);
 		viewPane.add(userPlaylists, 1, 0);	
+		viewPane.add(songsNotAdded, 2, 0);
 		
 		buildPlaylistView();
 		
@@ -93,34 +113,104 @@ public class SongGrabber extends Application
 	{
 		pauseBtn.setOnAction(event -> 
 		{
-			Spotify.pausePlayback();
+			Requests.pausePlayback();
 		});
 		
 		startBtn.setOnAction(event -> 
 		{
-			Spotify.resumePlayback();
+			Requests.resumePlayback();
 		});
 		
 		grabBtn.setOnAction(event ->
 		{
-			parseArtistSongs();
+			Artist artist = foundArtists.getSelectionModel().getSelectedItem();
+			PlaylistSimplified playlistDst = userPlaylists.getSelectionModel().getSelectedItem();
+			
+			// Check if selections have been made
+			if (playlistDst == null || artist == null)
+			{
+				Alert makeSelection = new Alert(AlertType.ERROR);
+				String errorMsg = "No selection made for: ";
+				
+				errorMsg += (artist == null) ? "Artist " : "";
+				errorMsg += (playlistDst == null) ? "Playlist" : "";
+				
+				makeSelection.setHeaderText(errorMsg);
+				makeSelection.show();
+			} else 
+			{
+				ArrayList<TrackSimplified> invalidSongs = Parser.parseArtistSongs(artist, playlistDst);
+				
+				if (invalidSongs != null)
+				{
+					songsNotAdded.setItems(FXCollections.observableArrayList(invalidSongs));
+					setTrackCellFactory();
+				}
+				finishedProcess.show();
+			}
+			
 		});
+		
+		addBackBtn.setOnAction(event -> 
+		{
+			TrackSimplified track = songsNotAdded.getSelectionModel().getSelectedItem();
+			PlaylistSimplified playlistDst = userPlaylists.getSelectionModel().getSelectedItem();
+			
+			// Check if selections have been made
+			if (playlistDst == null || track == null)
+			{
+				Alert makeSelection = new Alert(AlertType.ERROR);
+				String errorMsg = "No selection made for: ";
+				
+				errorMsg += (track == null) ? "Track " : "";
+				errorMsg += (playlistDst == null) ? "Playlist" : "";
+				
+				makeSelection.setHeaderText(errorMsg);
+				makeSelection.show();
+			} else 
+			{
+				String[] song = {track.getUri()};
+				Requests.addToPlaylist(playlistDst, song);
+				finishedProcess.show();
+			}
+		});
+		
+		shuffleBtn.setOnAction(event -> 
+		{
+			PlaylistSimplified playlistDst = userPlaylists.getSelectionModel().getSelectedItem();
+			
+			// Check if selections have been made
+			if (playlistDst == null)
+			{
+				Alert makeSelection = new Alert(AlertType.ERROR);
+				String errorMsg = "No selection made for: ";
+				
+				errorMsg += (playlistDst == null) ? "Playlist" : "";
+				
+				makeSelection.setHeaderText(errorMsg);
+				makeSelection.show();
+			} else 
+			{
+				Shuffle.shufflePlaylist(playlistDst);
+				finishedProcess.show();
+			}
+		});
+		
 		
 		searchField.setOnAction(event -> 
 		{
-			Artist[] allArtists = Spotify.searchArtists(searchField.getText());
+			Artist[] allArtists = Requests.searchArtists(searchField.getText());
 			
 			ObservableList<Artist> artistList = FXCollections.observableArrayList(allArtists);
 			foundArtists.setItems(artistList);
 			setArtistCellFactory();
-			
 		});
 		
 	}
 	
 	private void buildPlaylistView()
 	{
-		PlaylistSimplified[] playlists = Spotify.getUserPlaylists();
+		PlaylistSimplified[] playlists = Requests.getUserPlaylists();
 		PlaylistSimplified playlist = playlists[0];
 		playlist.getName();
 		ObservableList<PlaylistSimplified> playlistArr = FXCollections.observableArrayList(playlists);
@@ -128,11 +218,7 @@ public class SongGrabber extends Application
 		setPlaylistCellFactory();
 	}
 	
-	private void parseArtistSongs()
-	{
-		PlaylistSimplified playlistDst = userPlaylists.getSelectionModel().getSelectedItem();
-		Artist artist = foundArtists.getSelectionModel().getSelectedItem();
-	}
+	
 	
 	private void setArtistCellFactory()
 	{
@@ -205,6 +291,35 @@ public class SongGrabber extends Application
 					}
 			
 				});
+	}
+	
+	private void setTrackCellFactory()
+	{
+		songsNotAdded.setCellFactory(new Callback<ListView<TrackSimplified>, ListCell<TrackSimplified>>() 
+		{
+
+			@Override
+			public ListCell<TrackSimplified> call(ListView<TrackSimplified> param)
+			{
+				ListCell<TrackSimplified> cell = new ListCell<TrackSimplified>() 
+						{
+							@Override
+							protected void updateItem(TrackSimplified track, boolean empty)
+							{
+								super.updateItem(track, empty);
+								if (track != null)
+								{
+									setText(track.getName());
+								} else
+								{
+									setText("");
+								}
+							}
+						};
+				return cell;
+			}
+	
+		});
 	}
 	
 }
