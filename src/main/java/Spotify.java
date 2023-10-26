@@ -12,7 +12,7 @@ import se.michaelthelin.spotify.requests.authorization.authorization_code.Author
 import se.michaelthelin.spotify.requests.authorization.authorization_code.pkce.AuthorizationCodePKCERefreshRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.pkce.AuthorizationCodePKCERequest;
 
-
+import java.awt.Desktop;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,6 +28,8 @@ import java.util.Scanner;
 
 import org.apache.hc.core5.http.ParseException;
 
+import javafx.scene.control.TextInputDialog;
+
 
 public class Spotify
 {
@@ -37,7 +39,7 @@ public class Spotify
 	protected static String challenge = generateChallenge();
 	protected static URI uri;
 	protected static String code;
-	
+	protected static TextInputDialog td = new TextInputDialog();
 	
 	private static SpotifyApi api = new SpotifyApi.Builder()
 			.setClientId(clientID)
@@ -85,7 +87,14 @@ public class Spotify
 				.build();
 		
 		uri = authUriRequest.execute(); 
-		System.out.println(uri);
+		Desktop desktop = Desktop.getDesktop();
+		try
+		{
+			desktop.browse(uri);
+		} catch (IOException e)
+		{
+			System.out.println("Webpage Opening Error: " + e.getMessage());
+		}
 	}
 	
 	private static void authCodeRequest()
@@ -130,14 +139,13 @@ public class Spotify
 	
 	private static void authWorkflow()
 	{
-		Scanner input = new Scanner(System.in);
 		
+		td.setHeaderText("Open URL below and give code:");
 		authCodeUriRequest();
-		System.out.println("Open URL and give code:");
-		code = input.nextLine();
+		td.showAndWait();
+		code = td.getEditor().getText();
 		authCodeRequest();
 		
-		input.close();
 	}
 	
 	private static void writeRefreshToken()
@@ -188,4 +196,6 @@ public class Spotify
 		
 		return null;
 	}
+	
+	
 }
